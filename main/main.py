@@ -1,18 +1,18 @@
 from os import listdir
 from os.path import join, isfile
-from multiprocessing import Pool
+from multiprocessing.dummy import Pool
 from functools import partial
 import time
 import zipfile as zf
 
 
 def get_all_archives_paths(main_path):
-    """Function to parse list of paths where all archives are located
+    """Function parses list of paths where all archives are located
     in main_path.
 
     :param main_path: path to directory containing all the archives
     :type main_path: str
-    :return: list
+    :return: archives_paths (list)
     """
     archives_paths = []
 
@@ -28,7 +28,7 @@ def get_all_archives_paths(main_path):
 
 
 def show_archives_and_number(any_archives_list):
-    """Special procedure to show information about list of available archives
+    """Special procedure shows information about list of available archives
     (in any_archives_list).
 
     :param any_archives_list: sequence containing paths to archives
@@ -42,34 +42,52 @@ def show_archives_and_number(any_archives_list):
         sep="\n"
     )
     if number_of_archives > 10:
-        [print("->", archive_path)for archive_path in any_archives_list[0:3]]
-        print("...")
-        [print("->", archive_path) for archive_path in any_archives_list[
-                                                       -4:-1]]
+        print(
+            "\n".join(
+                map(lambda string: "-> " + string, any_archives_list[0:3])
+            ) + "\n...\n" + "\n".join(
+                map(lambda string: "-> " + string, any_archives_list[-4:-1])
+            )
+        )
     else:
-        [print("->", archive_path) for archive_path in any_archives_list]
+        print(
+            "\n".join(map(lambda string: "-> " + string, any_archives_list))
+        )
 
 
 def get_search_query():
-    """Function to get user's query for searching data.
-    Value is entered from the keyboard.
+    """Function gets user's query for searching data.
+    Value is entered by the keyboard.
 
-    :return: set
+    :return: processed_search_string (set)
     """
-    search_string = input("Enter your query here: ")
-    return set(search_string.split())
+    processed_search_string = set(
+        input("Enter your query here: ").lower().split()
+    )
+
+    return processed_search_string
 
 
 def show_time(start_time):
+    """Extra functions shows program running time.
+
+    :param start_time: time when the algorithm was started
+    :type start_time: float
+    :return: None
+    """
     time_sec = time.time() - start_time
-    time_min = int(time_sec // 60)
+    time_min = int(time_sec) // 60
     time_sec = time_sec - time_min * 60
-    print("Done in {} m {} s.".format(time_min, round(time_sec, 3)))
+
+    print("Done in {} m {:.3f} s.".format(
+        time_min,
+        time_sec
+    ))
 
 
 def work_with_all_archives(archives_paths, processes_number, any_query,
                            time_start):
-    """Procedure to iterate list with paths of archives (archives_paths).
+    """Procedure iterates list with paths of archives (archives_paths).
 
     :param archives_paths: sequence containing paths to archives
     :type archives_paths: list
@@ -83,7 +101,10 @@ def work_with_all_archives(archives_paths, processes_number, any_query,
     """
     p = Pool(processes_number)
     p.map(
-        partial(work_with_current_archive, given_query=any_query),
+        partial(
+            work_with_current_archive,
+            given_query=any_query
+        ),
         archives_paths
     )
 
@@ -91,7 +112,7 @@ def work_with_all_archives(archives_paths, processes_number, any_query,
 
 
 def work_with_current_archive(current_archive_path, given_query):
-    """Procedure to work with iteration archive is located in archive
+    """Procedure works with iteration archive is located in archive
     (current_archive_path).
 
     :param current_archive_path: string containing archive path of
@@ -105,11 +126,15 @@ def work_with_current_archive(current_archive_path, given_query):
             as zip_file_object:
         archive_files_names = zip_file_object.namelist()
 
-        work_with_all_files(archive_files_names, zip_file_object, given_query)
+        work_with_all_files(
+            archive_files_names,
+            zip_file_object,
+            given_query
+        )
 
 
 def work_with_all_files(files_names, zip_object, any_query):
-    """Procedure to iterate list of files are contained in zip file.
+    """Procedure iterates list of files are contained in zip file.
 
     :param files_names: sequence containing names of files in archive
     :type files_names: list
@@ -145,26 +170,26 @@ def work_with_current_file(name_of_file, zip_file_object, any_query):
             else:
                 data_string_decoded = data_string.decode("1251")
                 if any_query < set(data_string_decoded.lower().split()):
+
                     print(data_string_decoded.replace("\n", ""))
-                    #  Data string we need.
+                    # Data string we need.
 
 
 if __name__ == "__main__":
-    START = time.time()
-    N_PROCESSES = 20
-    CURRENT_PATH = r"C:\Users\Администратор\Desktop\test_archives"
-    #  Enter path of archives here (CURRENT_PATH).
-    #  Example: C:\path\to\your\files
+    START: float = time.time()
+    N_PROCESSES: int = 20
+    CURRENT_PATH: str = r""
+    # Enter path of archives here (CURRENT_PATH).
+    # Example: C:\path\to\your\files
 
     archives_paths_list = get_all_archives_paths(CURRENT_PATH)
     show_archives_and_number(archives_paths_list)
 
-    QUERY = get_search_query()
-    input("Press Enter")
+    text_query = get_search_query()
 
     work_with_all_archives(
         archives_paths_list,
         N_PROCESSES,
-        QUERY,
+        text_query,
         START
     )
